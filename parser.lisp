@@ -84,23 +84,6 @@
 	 (cdr it)
 	 (error (format nil "~a not found" x)))))
 
-;; (defun firsts (grammar)
-;;   (let ((nullable-p (member-pred (nullables grammar))))
-;;     (loop with firsts-1 = '()
-;;        and firsts-2 = (create-list-map (tokens grammar))
-;;        initially (loop for x in (terminals grammar)
-;; 		    do (add-value-to-list-map x firsts-2 x))
-;;        do (loop 
-;; 	     for (X . Y_s) in grammar
-;; 	     do (dbind (nullable_Y_s . rest_Ys)
-;; 		       (span nullable-p Y_s)
-;; 		       (dolist (y (append nullable_Y_s (awhen (car rest_Ys) (list it))))
-;; 			 (add-to-list-map X firsts-2
-;; 					  (list-map-value y firsts-2)))))
-;; 	 (if (list-maps-equal firsts-1 firsts-2)
-;; 	     (return firsts-1)
-;; 	     (setq firsts-1 (copy-tree firsts-2))))))
-
 (defun firsts (grammar)
   (let ((nullable-p (member-pred (nullables grammar))))
 	(loop with firsts-size = 0
@@ -132,15 +115,14 @@
   (loop for l1 in lists-1 nconcing
 	(loop for l2 in lists-2 collecting
 	  (append l1 l2))))
+
 (defun on-all-pairs (fn lists-1 lists-2)
   (loop for l1 in lists-1 nconcing
 	(loop for l2 in lists-2 collecting
 	  (funcall fn l1 l2))))
+
 (defun truncate-list (k list)
   (subseq list 0 (min k (length list))))
-
-
-
 
 (defun firsts-k (grammar k)
   "Maps each token to the set of distinct terminal it can expand to, upto
@@ -161,32 +143,6 @@
 			do (f-k-add-all X (k-expressions Y-s)))))
 	  (f-k-map))))
 
-
-;; (defun firsts-k (grammar k)
-;;   (labels ((full-length-p (lst) (>= (length lst) k)))
-;;     (loop with f-k-1 = '()
-;;        and f-k-2 = (create-list-map (tokens grammar))
-;;        initially (loop for x in (terminals grammar)
-;; 		    do (add-value-to-list-map x f-k-2 (list x)))
-;;        do (loop for (X . Y_s) in grammar
-;; 	     do (let ((y-first-ks (mapcar (lambda (y) (list-map-value y f-k-2)) Y_s)))
-;; 		  
-;; 		  (when (all-non-null y-first-ks)
-;; 		    (add-to-list-map
-;; 		     X
-;; 		     f-k-2
-;; 		     (reduce (lambda (&rest forms)
-;; 			       (when forms
-;; 				 (dbind (forms1 forms2) forms
-;; 					(dbind (forms1-a . forms1-b)
-;; 					  (partition #'full-length-p forms1)
-;; 					  (append forms1-a
-;; 						  (mapcar (curry #'truncate-list k)
-;; 							  (join-all forms1-b forms2)))))))
-;; 			     y-first-ks)))))
-;; 	 (if (=  (tree-size f-k-1) (tree-size f-k-2))
-;; 	     (return f-k-1)
-;; 	     (setq f-k-1 (copy-tree f-k-2))))))
 
 (defun follows-k (grammar k)
   (labels ((full-length-p (lst) (>= (length lst) k)))
