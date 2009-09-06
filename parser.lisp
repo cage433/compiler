@@ -168,8 +168,6 @@
 	 (if (=  (tree-size f-k-1) (tree-size f-k-2))
 	     (return f-k-1)
 	     (setq f-k-1 (copy-tree f-k-2))))))
-;; (loop for i from 0 to 10
-;;      do ())
 
 
 
