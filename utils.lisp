@@ -242,7 +242,8 @@
 
 (defun foldr (fn init args)
   (reduce fn args :initial-value init :from-end t))
-
+(defun foldl (fn init args)
+  (reduce fn args :initial-value init :from-end nil))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Reader macros for curry and compose
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

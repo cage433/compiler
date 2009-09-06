@@ -3,3 +3,4 @@
 (use-package :lisp-unit)
 (load "utils.lisp")
 (load "list-map")
+(load "parser")

@@ -24,28 +24,28 @@
 		    (X Y)
 		    (X a)))
 
-(non-terminals grammar-1)
-
 
 (defun nullables (grammar)
-  (labels 
-	((recurse (nullables)
-			  (let ((next-nullables (copy-seq nullables)))
-				(mapc (db-lambda (lhs &rest rhs)
-								 (when (and (not (member lhs next-nullables))
-											(every #_(member _ next-nullables) rhs))
-								   (push lhs next-nullables)))
-					  grammar)
-				(if (equalp nullables next-nullables)
-				  next-nullables
-				  (recurse next-nullables)))))
-	(recurse '())))
+  "Finds the nullable set of tokens by the applying the recursive rule
+  	A token X is nullable if and only if there exists a production 
+		X -> Y_1 .. Y_n 
+	where each of the Y_i is nullable "
+  (loop
+	with num-nullables = -1
+	and nullables = '()
+	do 	(setq num-nullables (length nullables))
+		(loop for (lhs . rhs) in grammar
+		  if (and (not (member lhs nullables))
+				  (every [member _ nullables] rhs)) 
+		  do (push lhs nullables))
+	until (= num-nullables (length nullables))
+	finally (return nullables)))
 
 (define-test test-nullables
   (let ((set-eql (ca #'set-equals :test #'eql))) 
 	(assert-equality set-eql '(Y X) (nullables grammar-2))
-	(assert-equality set-eql  '() (nullables grammar-1))
-	))
+	(assert-equality set-eql  '() (nullables grammar-1))))
+
 (run-tests test-nullables)
 
 (defun member-pred (set &key (test #'equal))
@@ -132,15 +132,13 @@
   (let ((f-k (make-list-multi-map))
 		(saved-size))
 	(with-multi-map f-k
-	  (labels ((k-expressions (Y-s)
-							  (foldl [on-all-pairs { [trunc k] append}] 
-									 '(nil)
-									 (mapcar #'f-k-get Y-s))))
-		(mapc #_(f-k-add _ (list _)) (terminals grammar))
-		(until (eq saved-size f-k-size)
-		  (setq saved-size f-k-size)
-		  (loop for (X . Y-s) in grammar
-			do (f-k-add-all X (k-expressions Y-s)))))
+	  (mapc #_(f-k-add _ (list _)) (terminals grammar))
+	  (until (eq saved-size f-k-size)
+		(setq saved-size f-k-size)
+		(loop for (X . Y-s) in grammar
+		  do (f-k-add-all X (foldl [on-all-pairs { [trunc k] append}] 
+								   '(nil)
+								   (mapcar #'f-k-get Y-s)))))
 	  (f-k-map))))
 
 
