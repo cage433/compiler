@@ -116,6 +116,7 @@
 	(loop for l2 in lists-2 collecting
 	  (append l1 l2))))
 
+
 (defun on-all-pairs (fn lists-1 lists-2)
   (loop for l1 in lists-1 nconcing
 	(loop for l2 in lists-2 collecting
@@ -123,6 +124,12 @@
 
 (defun truncate-list (k list)
   (subseq list 0 (min k (length list))))
+
+(defun expand-to-terminals (firsts-k symbols k)
+  (with-multi-map firsts-k
+	(foldl [on-all-pairs { [trunc k] append}] 
+		   '(nil)
+		   (mapcar #'firsts-k-get symbols))))
 
 (defun firsts-k (grammar k)
   "Maps each token to the set of distinct terminal it can expand to, upto
@@ -136,11 +143,8 @@
 	  (until (eq saved-size f-k-size)
 		(setq saved-size f-k-size)
 		(loop for (X . Y-s) in grammar
-		  do (f-k-add-all X (foldl [on-all-pairs { [trunc k] append}] 
-								   '(nil)
-								   (mapcar #'f-k-get Y-s)))))
-	  (f-k-map))))
-
+		  do (f-k-add-all X (expand-to-terminals f-k Y-s k)))
+	  (f-k-map)))))
 
 (defun follows-k (grammar k)
   (labels ((full-length-p (lst) (>= (length lst) k)))
@@ -170,25 +174,26 @@
 	     (setq f-k-1 (copy-tree f-k-2))))))
 
 
-
-	
 ;; Follows algorithm for 1 element -
 ;; For each production X -> Y_1 ... Y_n
 ;; For 1 <= i <= n, if Y_i+1, ..., Y_n are all nullable then
 ;; follows(Y_i) contains follows(X)
 ;; for each j, i < j <= n,
 ;;    if Y_i+1, ..., Y_j-1 are all nullable then
-;;  	follows(y_i) contains first(Y_j)
+;;  	follows(Y_i) contains first(Y_j)
 
 
 
-;; Follows algorithm for k element -
+;; Follows algorithm for k elements -
 ;; For each production X -> Y_1 ... Y_n
-;; For 1 <= i <= n, if Y_i+1, ..., Y_n are all nullable then
-;; follows(Y_i) contains follows(X)
-;; for each j, i < j <= n,
-;;    if Y_i+1, ..., Y_j-1 are all nullable then
-;;  	follows(y_i) contains first(Y_j)
+;; For 1 <= i < n, if E(Y_i+1 ... Y_n) contains an expansion
+;; t_1 t_2..t_m where m <= k then
+;; Foll(Y_i, k) contains t_1 .. t_m ++ Foll(X, k - m)
+;; 
+;; for each j, i < j < n,
+;;    if E(Y_i+1 ... Y_j-1) contains an expansion
+;; t_1 t_2..t_m where m <= k then
+;;  	Foll(y_i, k) contains first(Y_j, k - m)
 (defun follows (grammar)
   (let ((nullable-p (member-pred (nullables grammar)))
 	(firsts (firsts grammar)))

@@ -86,13 +86,17 @@
 	))
 (run-tests test-list-map)
 (run-tests test-list-multi-map)
+
+
+;; Saved as this is one of my first uses of nested backquotes. It works,
+;; but turned out to be more useful to have these as functions rather than
+;; macros. Needed to pass them to map.
 (defmacro! with-multi-map (map &body body)
   (dbind (size-sym get-sym add-sym add-all-sym map-sym) (mapcar #_(symb map _) '(-size -get -add -add-all -map))
-		 `(labels((,get-sym (,g!key) (f ,map :get ,g!key))
-				  (,add-sym (,g!key ,g!value) (f ,map :add ,g!key ,g!value))
-				  (,add-all-sym (,g!key ,g!values) (f ,map :add-all ,g!key ,g!values))
-				  (,map-sym () (f ,map :map)))
-			(declare (ignorable #',add-sym #',add-all-sym #',map-sym #',get-sym))
+		 `(macrolet ((,get-sym (,g!key) `(f ,',map :get ,,g!key))
+					 (,add-sym (,g!key ,g!value) `(f ,',map :add ,,g!key ,,g!value))
+					 (,add-all-sym (,g!key ,g!values) `(f ,',map :add-all ,,g!key ,,g!values))
+					 (,map-sym () `(f ,',map :map)))
 			(symbol-macrolet ((,size-sym (f ,map :size)))
 							 ,@body))))
 

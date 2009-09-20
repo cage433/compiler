@@ -308,3 +308,9 @@
 (add-compose-syntax)
 (defun trunc (n list)
   (subseq list 0 (min n (length list))))
+
+;; SBCL's macroexpand-all thing
+
+#+sbcl (defun mac-ex-all (exp)
+		 (let ((sb-walker:*walk-form-expand-macros-p* t))
+		   (sb-walker:walk-form exp)))
