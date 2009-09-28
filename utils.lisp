@@ -314,3 +314,8 @@
 #+sbcl (defun mac-ex-all (exp)
 		 (let ((sb-walker:*walk-form-expand-macros-p* t))
 		   (sb-walker:walk-form exp)))
+
+
+(defmacro! dbind-lambda (args &body body)
+  `(lambda (,g!arg)
+	 (destructuring-bind ,args ,g!arg ,@body)))

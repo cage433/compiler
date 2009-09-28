@@ -1,6 +1,6 @@
 
-(defmacro! make-list-map (&key (key-test #'equal) (value-test #'equal))
-  `(let ((,g!this) (map '()))
+(defmacro! make-list-map (&key (init-map '()) (key-test #'equal) (value-test #'equal))
+  `(let ((,g!this) (map ,(copy-tree init-map)))
 	 (setq ,g!this
 		   (dlambda
 			 (:put (key value) 
@@ -23,8 +23,8 @@
 	 	
 	 ,g!this))
 
-(defmacro! make-list-multi-map (&key (key-test #'equal) (value-test #'equal))
-  `(let ((,g!this) (map (make-list-map :key-test ,key-test)))
+(defmacro! make-list-multi-map (&key (init-map '()) (key-test #'equal) (value-test #'equal))
+  `(let ((,g!this) (map (make-list-map :init-map ,init-map :key-test ,key-test)))
 	 (setq ,g!this
 		   (dlambda
 			 (:add (key value) 

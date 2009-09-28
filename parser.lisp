@@ -125,11 +125,10 @@
 (defun truncate-list (k list)
   (subseq list 0 (min k (length list))))
 
-(defun expand-to-terminals (firsts-k symbols k)
-  (with-multi-map firsts-k
-	(foldl [on-all-pairs { [trunc k] append}] 
-		   '(nil)
-		   (mapcar #'firsts-k-get symbols))))
+(defun join-and-trunc (exps k)
+  (foldl [on-all-pairs {[trunc k] append}]
+		 '(nil)
+		 exps))
 
 (defun firsts-k (grammar k)
   "Maps each token to the set of distinct terminal it can expand to, upto
@@ -143,35 +142,9 @@
 	  (until (eq saved-size f-k-size)
 		(setq saved-size f-k-size)
 		(loop for (X . Y-s) in grammar
-		  do (f-k-add-all X (expand-to-terminals f-k Y-s k)))
-	  (f-k-map)))))
+		  do (f-k-add-all X (join-and-trunc (mapcar #'f-k-get Y-s) k))))
+	  f-k)))
 
-(defun follows-k (grammar k)
-  (labels ((full-length-p (lst) (>= (length lst) k)))
-    (loop with f-k-1 = '()
-       and f-k-2 = (create-list-map (tokens grammar))
-       initially (loop for x in (terminals grammar)
-		    do (add-value-to-list-map x f-k-2 (list x)))
-       do (loop for (X . Y_s) in grammar
-	     do (let ((y-first-ks (mapcar (lambda (y) (list-map-value y f-k-2)) Y_s)))
-		  
-		  (when (all-non-null y-first-ks)
-		    (add-to-list-map
-		     X
-		     f-k-2
-		     (reduce (lambda (&rest forms)
-			       (when forms
-				 (dbind (forms1 forms2) forms
-					(dbind (forms1-a . forms1-b)
-					  (partition #'full-length-p forms1)
-					  (append forms1-a
-						  (mapcar (curry #'truncate-list k)
-							  (join-all forms1-b forms2))))
-					)))
-			     y-first-ks)))))
-	 (if (=  (tree-size f-k-1) (tree-size f-k-2))
-	     (return f-k-1)
-	     (setq f-k-1 (copy-tree f-k-2))))))
 
 
 ;; Follows algorithm for 1 element -
@@ -184,16 +157,59 @@
 
 
 
-;; Follows algorithm for k elements -
+
+(defun unique-elements (list &key (test #'equal))
+  (labels ((recurse (list acc)
+					(cond ((null list) acc)
+						  ((member (car list) acc :test test) (recurse (cdr list) acc))
+						  (t (recurse (cdr list) (cons (car list) acc))))))
+	(recurse list '())))
+(defun join-expressions (exps-1 exps-2 k)
+  (unique-elements
+	(mapcar [trunc k]
+	  (mapcan (lambda (x) (mapcar 
+							(lambda (y) (append x y)) 
+							exps-2)) 
+			  exps-1))))
+(defun exp-firsts-k (exp firsts-k k)
+  (with-multi-map firsts-k
+	(labels ((recurse (exp acc)
+					  (format t "Acc = ~a~%" acc)
+					  (format t "Exp on ~a are ~a~%" (car exp) (firsts-k-get (car exp)))
+					  (if (null exp)
+						acc
+						(recurse (cdr exp) 
+								 (join-expressions 
+								   acc 
+								   (firsts-k-get (car exp)) 
+								   k)))))
+			 (recurse exp (list nil)))))
+
+;;
+;; Better algorithm for k elements
 ;; For each production X -> Y_1 ... Y_n
-;; For 1 <= i < n, if E(Y_i+1 ... Y_n) contains an expansion
-;; t_1 t_2..t_m where m <= k then
-;; Foll(Y_i, k) contains t_1 .. t_m ++ Foll(X, k - m)
-;; 
-;; for each j, i < j < n,
-;;    if E(Y_i+1 ... Y_j-1) contains an expansion
-;; t_1 t_2..t_m where m <= k then
-;;  	Foll(y_i, k) contains first(Y_j, k - m)
+;; For 1 <= i <= n - 1
+;; Follows(Y_i, k) contains firsts (Y_i+1, ..., Y_n, k) + Follows(X, k) truncated to k
+;; Follows(X, k) contains Follows(Y_n, k)
+
+;; (defun follows-k (grammar k)
+;;   (let ((foll-k (make-list-multi-map))
+;; 		(firsts-k (firsts-k grammar k))
+;; 		(saved-size))
+;; 	(with-multi-map foll-k
+;; 		(until (eq saved-size foll-k-size)
+;; 		  (setq saved-size foll-k-size)
+;; 		  (loop for (X . Y-s) in grammar
+;; 			do (mapl (dbind-lambda (Y-i . Y-i+) 
+;; 								   (foll-k-add-all Y-i 
+;; 												   (exp-firsts-k Y-i+ firsts-k k)
+;; 												   (join-and-trunc (append (mapcar #'firsts-k-get Y-i+) 
+;; 																		   (foll-k-get X)) 
+;; 																   k)))
+;; 					 Y-s)))
+;; 		(foll-k-map))))
+		  	
+
 (defun follows (grammar)
   (let ((nullable-p (member-pred (nullables grammar)))
 	(firsts (firsts grammar)))
