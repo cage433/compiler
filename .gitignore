@@ -1,0 +1,8 @@
+*.swp
+*~
+*.aux
+*.dvi
+*.latex
+*.log
+*.fasl
+scratch.lisp
